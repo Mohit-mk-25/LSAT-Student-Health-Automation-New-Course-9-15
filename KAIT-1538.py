@@ -8,8 +8,7 @@ import pygsheets
 from dateutil.relativedelta import relativedelta
 import warnings
 warnings.filterwarnings("ignore")
-from db_utils import get_connection,execute_query
-# from common_utils import compose_email, connect_to_db, tableauLogger
+from common_utils import compose_email, connect_to_db, tableauLogger
 def read_from_gsheets(gc,sheet_id, tab_name):
 
     _sheet = gc.open_by_key(sheet_id)
@@ -255,8 +254,7 @@ def get_score_report(gc,act_df,score_df,lol_prod_code,tut_prod_code):
     return cleaned_df_raw , student_report
 
 def main():
-
-    # Mail Things
+    conn = connect_to_db('redshift_prod')
     report_name = 'LSAT Student Health New Course (9/15)'
     service_account_path = r'C:\Users\MKumar\My Drive\Jupyter Workspace\Service account/gspyapi-448110-882afa96759d.json'
     gc = pygsheets.authorize(service_file=service_account_path)
@@ -287,8 +285,8 @@ def main():
 
     act_query  = load_query(gc,'LSAT_activity_query.sql', lol_prod_code, tut_prod_code)
     score_query  = load_query(gc,'lsat_score_main.sql', lol_prod_code, tut_prod_code)
-    act_df = execute_query(act_query)
-    score_df = execute_query(score_query)
+    act_df = pd.read_sql(act_query, conn)
+    score_df = pd.read_sql(score_query, conn)
 
     
 
@@ -312,28 +310,26 @@ def main():
     for p_codes, sheet_id in zip(prod_codes, gsheet_ids):
         filter_df_score = get_data_prod_code(student_report, p_codes)
         filter_df_activity = get_data_prod_code(cleaned_df_raw, p_codes)
-        # s1_csv_file = f'{report_name}_{p_codes[0]}_{s1_tab}__{file_now}.csv'
-        # s2_csv_file = f'{report_name}_{p_codes[0]}_{s2_tab}__{file_now}.csv'
+        s1_csv_file = f'{report_name}_{p_codes[0]}_{s1_tab}__{file_now}.csv'
+        s2_csv_file = f'{report_name}_{p_codes[0]}_{s2_tab}__{file_now}.csv'
 
         load_to_gsheets(gc, filter_df_score, sheet_id, s1_tab)
-        # filter_df_score.to_csv(s1_csv_file, index=False)
-        # generated_files.append(s1_csv_file)
+        filter_df_score.to_csv(s1_csv_file, index=False)
+        generated_files.append(s1_csv_file)
 
         load_to_gsheets(gc, filter_df_activity, sheet_id, s2_tab)
-        # filter_df_activity.to_csv(s2_csv_file, index=False)
-        # generated_files.append(s2_csv_file)
+        filter_df_activity.to_csv(s2_csv_file, index=False)
+        generated_files.append(s2_csv_file)
 
-   
-
-    # compose_email(sender='business.intelligence@kaplan.com', **mail_params)
-    # for gfile in generated_files:
-    #     shutil.move(gfile, 'archive/')
+    compose_email(sender='business.intelligence@kaplan.com', **mail_params)
+    for gfile in generated_files:
+        shutil.move(gfile, 'archive/')
 
 if __name__ == '__main__':
 
-    # log_obj = tableauLogger(job=report_name, repo='PYNS')
+    log_obj = tableauLogger(job=report_name, repo='PYNS')
 
     main()
 
-    # log_obj.close_log()
+    log_obj.close_log()
 
