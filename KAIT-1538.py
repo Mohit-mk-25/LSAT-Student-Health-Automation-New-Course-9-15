@@ -256,8 +256,7 @@ def get_score_report(gc,act_df,score_df,lol_prod_code,tut_prod_code):
 def main():
     conn = connect_to_db('redshift_prod')
     report_name = 'LSAT Student Health New Course (9/15)'
-    service_account_path = r'C:\Users\MKumar\My Drive\Jupyter Workspace\Service account/gspyapi-448110-882afa96759d.json'
-    gc = pygsheets.authorize(service_file=service_account_path)
+    gc = pygsheets.authorize(service_file='ktp-datasci-py-9ceeec0a3552.json')
     now = datetime.now() - timedelta(hours=5)
     file_now = now.strftime('%Y%m%d_%H%M')
     mail_now = now.strftime('%d %b %Y %H:%M')
